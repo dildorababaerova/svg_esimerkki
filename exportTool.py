@@ -82,20 +82,15 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # Testataan yhteys
         try:
             dbConnection=dbOperations.DbConnection(settingsDictionary)
+            print('Yhteys onnistui')
+            
             table= 'information_schema.tables'
             columns = ['table_type']
             filterText = f"table_schema NOT IN ('information_schema', 'pg_catalog')"
-
-            columns = ['table_name']
-            filterView = f"table_schema NOT IN ('information_schema', 'pg_catalog', 'BASE TABLE')"
-            filterBaseTable = f"table_schema NOT IN ('information_schema', 'pg_catalog', 'VIEW')"
             
             self.ui.statusbar.showMessage('Yhteys onnistui')
 
-            objectType=dbConnection.filterDistinctColumsFromTable(table, columns, filterText)
-            objectViewName=dbConnection.filterDistinctColumsFromTable(table, columns, filterView)
-            
-            objectBaseTableName=dbConnection.filterDistinctColumsFromTable(table, columns, filterBaseTable)
+            objectType = dbConnection.filterDistinctColumsFromTable(table, columns, filterText)
             print('Objektit nimet:', objectType)
 
             cleanedObjectType = []
@@ -104,29 +99,35 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                cleanedObjectType.append(objectType)
             print('Tyyppilista:', cleanedObjectType)
             
-            cleanedObjectViewName = []
-            for value in objectViewName:
-               objectViewName = value[0]
-               cleanedObjectViewName.append(objectViewName)
-            print('View_Name_lista:', cleanedObjectViewName)
-            
-            cleanedObjectBaseTableName = []
-            for value in objectBaseTableName:
-               objectBaseTableName = value[0]
-               cleanedObjectBaseTableName.append(objectBaseTableName)
-            print('Base_Table_lista:', cleanedObjectBaseTableName)
-
-
-
-
             self.ui.objectTypeComboBox.addItems(cleanedObjectType)
-            if cleanedObjectType== 'VIEW':
+
+
+            if cleanedObjectType == 'VIEW':
+                columns = ['table_name']
+                filterView = f"table_schema NOT IN ('information_schema', 'pg_catalog', 'BASE TABLE')"
+                filterBaseTable = f"table_schema NOT IN ('information_schema', 'pg_catalog', 'VIEW')"
+                
+                objectViewName=dbConnection.filterDistinctColumsFromTable(table, columns, filterView)
+                print('Objektin nimi:', objectViewName)
+                objectBaseTableName=dbConnection.filterDistinctColumsFromTable(table, columns, filterBaseTable)
+                print('Objektin nimi:', objectBaseTableName)
+                
+                cleanedObjectViewName = []
+                for value in objectViewName:
+                    objectViewName = value[0]
+                    cleanedObjectViewName.append(objectViewName)
+                print('View_Name_lista:', cleanedObjectViewName)
+                
+                cleanedObjectBaseTableName = []
+                for value in objectBaseTableName:
+                    objectBaseTableName = value[0]
+                    cleanedObjectBaseTableName.append(objectBaseTableName)
+                print('Base_Table_lista:', cleanedObjectBaseTableName)
                 self.ui.objectNameComboBox.addItems(cleanedObjectViewName)
             else:
                 self.ui.objectNameComboBox.addItems(cleanedObjectBaseTableName)
             
 
-            print('Yhteys onnistui')
             #self.updatePrintedLabel()
         except Exception as e:
             print('Yhteys epäonnistui')
