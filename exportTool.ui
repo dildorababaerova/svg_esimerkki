@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>800</width>
-    <height>600</height>
+    <width>1120</width>
+    <height>961</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -46,7 +46,7 @@ color: rgb(255, 255, 255);</string>
       <string>Testaa yhteys</string>
      </property>
     </widget>
-    <widget class="QWidget" name="">
+    <widget class="QWidget" name="layoutWidget">
      <property name="geometry">
       <rect>
        <x>30</x>
@@ -142,20 +142,7 @@ color: rgb(255, 255, 255);</string>
      <string>Tietokantayhteyden asetukset</string>
     </property>
    </widget>
-   <widget class="QLineEdit" name="viewNameLineEdit">
-    <property name="geometry">
-     <rect>
-      <x>30</x>
-      <y>280</y>
-      <width>311</width>
-      <height>22</height>
-     </rect>
-    </property>
-    <property name="placeholderText">
-     <string>Tietokannan näkymän nimi, jonka tiedot viedään</string>
-    </property>
-   </widget>
-   <widget class="QLabel" name="viewNameLabel">
+   <widget class="QLabel" name="objectTypeLabel">
     <property name="geometry">
      <rect>
       <x>30</x>
@@ -165,7 +152,7 @@ color: rgb(255, 255, 255);</string>
      </rect>
     </property>
     <property name="text">
-     <string>Näkymän nimi</string>
+     <string>Objektin tyyppi</string>
     </property>
    </widget>
    <widget class="QPushButton" name="exportPushButton">
@@ -225,13 +212,46 @@ color: rgb(255, 255, 255);</string>
      <string>Esikatselu</string>
     </property>
    </widget>
+   <widget class="QComboBox" name="objectTypeComboBox">
+    <property name="geometry">
+     <rect>
+      <x>30</x>
+      <y>280</y>
+      <width>101</width>
+      <height>24</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QComboBox" name="objectNameComboBox">
+    <property name="geometry">
+     <rect>
+      <x>150</x>
+      <y>280</y>
+      <width>191</width>
+      <height>24</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QLabel" name="objectNameLabel">
+    <property name="geometry">
+     <rect>
+      <x>160</x>
+      <y>260</y>
+      <width>101</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Objektin  nimi</string>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>800</width>
+     <width>1120</width>
      <height>33</height>
     </rect>
    </property>
