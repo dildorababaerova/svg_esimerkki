@@ -227,7 +227,7 @@ class DbConnection():
     
     
     # Metodi tietojen lukemiseen, taulun valitut sarakkeet
-    def filterDistinctColumsFromTable(self, table: str, columns: list, filter:str) -> list:
+    def filterDistinctColumnsFromTable(self, table: str, columns: list, filter:str) -> list:
         """Filters data from table or viwe according to filter string
 
         Args:

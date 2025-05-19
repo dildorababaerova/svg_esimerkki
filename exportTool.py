@@ -5,7 +5,7 @@
 
 # KIRJASTOJEN JA MODUULIEN LATAUKSET
 # ----------------------------------
-import os # Polkumääritykset
+# import os # Polkumääritykset
 import sys # Käynnistysargumentit
 
 from PySide6 import QtWidgets # Qt-vimpaimet
@@ -20,7 +20,7 @@ from exportTool_ui import Ui_MainWindow # Käännetyn käyttöliittymän luokka
 # Määritellään luokka, joka perii QMainWindow- ja Ui_MainWindow-luokan
 class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     """A class for creating main window for the application"""
-    
+
     # Määritellään olionmuodostin ja kutsutaan yliluokkien muodostimia
     def __init__(self):
         super().__init__()
@@ -41,23 +41,23 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.serverName = 'localhost'
         self.databaseName = 'autolainaus'
         self.userName = 'postgres'   
-        self.password = 'Q2werty'
+        self.password = 'Q2werty7'
         self.portNumber = '5432'
 
 
-        
+
 
 
         # OHJELMOIDUT SIGNAALIT
         # ---------------------
-        
+
         # Kun Tulosta-painiketta on klikattu, kutsutaan updatePrintedLabel-metodia
         # self.ui.tulostaPushButton.clicked.connect(self.updatePrintedLabel)
 
         self.ui.testConnectionPushButton.clicked.connect(self.connectDb)
 
-   
-   
+
+
     # OHJELMOIDUT SLOTIT
     # ------------------
 
@@ -71,7 +71,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # self.portNumber = self.ui.portLineEdit.text()
 
 
-        settingsDictionary = {
+        self.settingsDictionary = {
             'server': self.serverName,
             'database': self.databaseName,
             'userName': self.userName,  
@@ -81,57 +81,61 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         # Testataan yhteys
         try:
-            dbConnection=dbOperations.DbConnection(settingsDictionary)
-            table= 'information_schema.tables'
+        # Establish database connection
+            self.dbConnection = dbOperations.DbConnection(self.settingsDictionary)
+            
+            # Get all object types (VIEW/BASE TABLE)
+            table = 'information_schema.tables'
             columns = ['table_type']
-            filterText = f"table_schema NOT IN ('information_schema', 'pg_catalog')"
-
-            columns = ['table_name']
-            filterView = f"table_schema NOT IN ('information_schema', 'pg_catalog', 'BASE TABLE')"
-            filterBaseTable = f"table_schema NOT IN ('information_schema', 'pg_catalog', 'VIEW')"
+            filterText = "table_schema NOT IN ('information_schema', 'pg_catalog')"
+            objectTypes = self.dbConnection.filterDistinctColumnsFromTable(table, columns, filterText)
             
-            self.ui.statusbar.showMessage('Yhteys onnistui')
-
-            objectType=dbConnection.filterDistinctColumsFromTable(table, columns, filterText)
-            objectViewName=dbConnection.filterDistinctColumsFromTable(table, columns, filterView)
+            # Clean object types
+            cleanedObjectTypes = [obj[0] for obj in objectTypes]
+            print('Available object types:', cleanedObjectTypes)
             
-            objectBaseTableName=dbConnection.filterDistinctColumsFromTable(table, columns, filterBaseTable)
-            print('Objektit nimet:', objectType)
-
-            cleanedObjectType = []
-            for value in objectType:
-               objectType = value[0]
-               cleanedObjectType.append(objectType)
-            print('Tyyppilista:', cleanedObjectType)
+            # Populate object type combobox
+            self.ui.objectTypeComboBox.clear()
+            self.ui.objectTypeComboBox.addItems(cleanedObjectTypes)
             
-            cleanedObjectViewName = []
-            for value in objectViewName:
-               objectViewName = value[0]
-               cleanedObjectViewName.append(objectViewName)
-            print('View_Name_lista:', cleanedObjectViewName)
+            # Connect object type selection change signal
+            self.ui.objectTypeComboBox.currentTextChanged.connect(
+                lambda: self.updateObjectNames(self.dbConnection))
             
-            cleanedObjectBaseTableName = []
-            for value in objectBaseTableName:
-               objectBaseTableName = value[0]
-               cleanedObjectBaseTableName.append(objectBaseTableName)
-            print('Base_Table_lista:', cleanedObjectBaseTableName)
-
-
-
-
-            self.ui.objectTypeComboBox.addItems(cleanedObjectType)
-            if cleanedObjectType== 'VIEW':
-                self.ui.objectNameComboBox.addItems(cleanedObjectViewName)
-            else:
-                self.ui.objectNameComboBox.addItems(cleanedObjectBaseTableName)
+            # Initial population of object names
+            self.updateObjectNames(self.dbConnection)
             
-
-            print('Yhteys onnistui')
-            #self.updatePrintedLabel()
+            self.ui.statusbar.showMessage('Connection successful')
+        
         except Exception as e:
-            print('Yhteys epäonnistui')
+            print('Connection failed')
             print(e)
-            #self.openWarning()
+            self.ui.statusbar.showMessage('Connection failed: ' + str(e))
+
+    def updateObjectNames(self, dbConnection):
+        """Updates object names combobox based on selected object type"""
+        
+        selected_type = self.ui.objectTypeComboBox.currentText()
+        table = 'information_schema.tables'
+        columns = ['table_name']
+        
+        try:
+            if selected_type == 'VIEW':
+                filterText = "table_schema NOT IN ('information_schema', 'pg_catalog') AND table_type = 'VIEW'"
+            else:  # BASE TABLE
+                filterText = "table_schema NOT IN ('information_schema', 'pg_catalog') AND table_type = 'BASE TABLE'"
+
+            objectNames = self.dbConnection.filterDistinctColumnsFromTable(table, columns, filterText)
+            cleanedObjectNames = [name[0] for name in objectNames]
+            
+            self.ui.objectNameComboBox.clear()
+            self.ui.objectNameComboBox.addItems(cleanedObjectNames)
+            
+            print(f'Objects of type {selected_type}:', cleanedObjectNames)
+            
+        except Exception as e:
+            print(f'Error loading {selected_type} names:', e)
+            self.ui.statusbar.showMessage(f'Error loading {selected_type} names')
 
     # Muutetaan tulostettuLabel:n sisältö: teksti ja väri
     def updatePrintedLabel(self):
@@ -160,5 +164,3 @@ if __name__ == "__main__":
 
     # Käynnistetään sovellus ja tapahtumienkäsittelijä
     app.exec()
-
-    
