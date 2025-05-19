@@ -33,16 +33,16 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
 
 
-        # self.serverName = ''
-        # self.databaseName = ''
-        # self.userName = ''   
-        # self.password = ''
-        # self.portNumber = ''
-        self.serverName = 'localhost'
-        self.databaseName = 'autolainaus'
-        self.userName = 'postgres'   
-        self.password = 'Q2werty'
-        self.portNumber = '5432'
+        self.serverName = ''
+        self.databaseName = ''
+        self.userName = ''   
+        self.password = ''
+        self.portNumber = ''
+        # self.serverName = 'localhost'
+        # self.databaseName = 'autolainaus'
+        # self.userName = 'postgres'   
+        # self.password = 'Q2werty'
+        # self.portNumber = '5432'
 
 
 
@@ -64,11 +64,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def connectDb(self):
         # Haetaan syötteet käyttöliittymästä
-        # self.serverName = self.ui.serverLineEdit.text()
-        # self.databaseName = self.ui.databaseLineEdit.text()
-        # self.userName = self.ui.userNameLineEdit.text()
-        # self.password = self.ui.passwordLineEdit.text()
-        # self.portNumber = self.ui.portLineEdit.text()
+        self.serverName = self.ui.serverLineEdit.text()
+        self.databaseName = self.ui.databaseLineEdit.text()
+        self.userName = self.ui.userNameLineEdit.text()
+        self.password = self.ui.passwordLineEdit.text()
+        self.portNumber = self.ui.portLineEdit.text()
 
 
         self.settingsDictionary = {
@@ -125,19 +125,20 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         selected_type = self.ui.objectTypeComboBox.currentText()
         table = 'information_schema.tables'
         columns = ['table_name']
+        table_type = self.ui.objectTypeComboBox.currentText()
+        # table_type = 'VIEW' if selected_type == 'VIEW' else 'BASE TABLE'
         
         try:
-            if selected_type == 'VIEW':
-                filterText = "table_schema NOT IN ('information_schema', 'pg_catalog') AND table_type = 'VIEW'"
-            else:  # BASE TABLE
-                filterText = "table_schema NOT IN ('information_schema', 'pg_catalog') AND table_type = 'BASE TABLE'"
+            filterText = f"table_type = '{table_type}' AND table_schema NOT IN ('information_schema', 'pg_catalog')"
 
             objectNames = self.dbConnection.filterDistinctColumnsFromTable(table, columns, filterText)
             # cleanedObjectNames = [name[0] for name in objectNames]
             cleanedObjectNameList = []
             for value in objectNames:
-                objectName = value[0]
-                cleanedObjectNameList.append(objectName)
+                objectSchema = value[0]
+                objectName = value[1]
+                objectFullName = f"{objectSchema}.{objectName}"
+                cleanedObjectNameList.append(objectFullName)
             
             self.ui.objectNameComboBox.clear()
             self.ui.objectNameComboBox.addItems(cleanedObjectNameList)
@@ -147,6 +148,25 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         except Exception as e:
             print(f'Error loading {selected_type} names:', e)
             self.ui.statusbar.showMessage(f'Error loading {selected_type} names')
+
+
+    def updateObjectViews(self, dbConnection):
+        """Updates object type based on selected object name"""
+        
+        selected_name = self.ui.objectNameComboBox.currentText()
+        
+        
+        try:
+            objectType = self.dbConnection.readAllColumnsFromTable(
+                'information_schema.tables', 
+                ['table_type'], 
+                f"table_name = '{selected_name.split('.')[1]}' AND table_schema = '{selected_name.split('.')[0]}'"
+            )
+                        
+        except Exception as e:
+            print(f'Error loading object type for {selected_name}:', e)
+            self.ui.statusbar.showMessage(f'Error loading object type for {selected_name}')
+
 
     # Muutetaan tulostettuLabel:n sisältö: teksti ja väri
     def updatePrintedLabel(self):

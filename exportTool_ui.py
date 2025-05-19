@@ -181,7 +181,7 @@ class Ui_MainWindow(object):
         self.getDataPushButton.setText(QCoreApplication.translate("MainWindow", u"Hae", None))
         self.previewLabel.setText(QCoreApplication.translate("MainWindow", u"Esikatselu", None))
         self.objectNameLabel.setText(QCoreApplication.translate("MainWindow", u"Objektin  nimi", None))
-        self.groupBox.setTitle(QCoreApplication.translate("MainWindow", u"GroupBox", None))
+        self.groupBox.setTitle(QCoreApplication.translate("MainWindow", u"Sarake-erotin CSV-tiedostossa", None))
         self.radioButton.setText(QCoreApplication.translate("MainWindow", u"pilkku(,)", None))
         self.radioButton_2.setText(QCoreApplication.translate("MainWindow", u"puolipiste(;)", None))
         self.radioButton_3.setText(QCoreApplication.translate("MainWindow", u"RadioButton(.)", None))

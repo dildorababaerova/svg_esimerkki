@@ -255,7 +255,7 @@ color: rgb(255, 255, 255);</string>
      </rect>
     </property>
     <property name="title">
-     <string>GroupBox</string>
+     <string>Sarake-erotin CSV-tiedostossa</string>
     </property>
     <widget class="QRadioButton" name="radioButton">
      <property name="geometry">

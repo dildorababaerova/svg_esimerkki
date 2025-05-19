@@ -428,6 +428,43 @@ class DbConnection():
             if currentConnection:
                 cursor.close() # Tuhotaan kursori
                 currentConnection.close() # Tuhotaan yhteys
+
+    def getColumnNames(self, table: str) -> list:
+        """Returns a list of column names from a table
+
+        Args:
+            table (str): Name of the table
+
+        Returns:
+            list: List of column names
+        """
+        # Yritetään avata yhteys tietokantaan ja lisätä tietue
+        try:
+            # Luodaan yhteys tietokantaan
+            currentConnection = psycopg2.connect(self.connectionString)
+
+            # Luodaan kursori suorittamaan tietokantoperaatiota
+            cursor = currentConnection.cursor()
+
+            # Määritellään lopullinen SQL-lause
+            sqlClause = f'SELECT * FROM {table} LIMIT 0;'
+            
+            # Suoritetaan SQL-lause
+            cursor.execute(sqlClause)
+
+            records= cursor.fetchall()
+            columns = [desc[0] for desc in cursor.description]
+            return columns
+
+        # Jos tapahtuu virhe, välitetään se luokkaa käyttävälle ohjelmalle
+        except (Exception, psycopg2.Error) as e:
+            raise e 
+        
+        finally:
+
+            # Selvitetään muodostuiko yhteysolio
+            if currentConnection:
+                cursor.close()
         
 if __name__ == "__main__":
 
