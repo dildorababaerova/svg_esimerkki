@@ -41,7 +41,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.serverName = 'localhost'
         self.databaseName = 'autolainaus'
         self.userName = 'postgres'   
-        self.password = 'Q2werty7'
+        self.password = 'Q2werty'
         self.portNumber = '5432'
 
 
@@ -91,12 +91,19 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             objectTypes = self.dbConnection.filterDistinctColumnsFromTable(table, columns, filterText)
             
             # Clean object types
-            cleanedObjectTypes = [obj[0] for obj in objectTypes]
-            print('Available object types:', cleanedObjectTypes)
+            cleanedObjectTypeList = ['Valitse']
+            for value in objectTypes:
+                objectType = value[0]
+                cleanedObjectTypeList.append(objectType)
+            print('Available object types:', cleanedObjectTypeList)
+            
+            # Optimal versio!
+            # cleanedObjectTypes = [obj[0] for obj in objectTypes]
+            print('Available object types:', cleanedObjectTypeList)
             
             # Populate object type combobox
             self.ui.objectTypeComboBox.clear()
-            self.ui.objectTypeComboBox.addItems(cleanedObjectTypes)
+            self.ui.objectTypeComboBox.addItems(cleanedObjectTypeList)
             
             # Connect object type selection change signal
             self.ui.objectTypeComboBox.currentTextChanged.connect(
@@ -126,12 +133,16 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 filterText = "table_schema NOT IN ('information_schema', 'pg_catalog') AND table_type = 'BASE TABLE'"
 
             objectNames = self.dbConnection.filterDistinctColumnsFromTable(table, columns, filterText)
-            cleanedObjectNames = [name[0] for name in objectNames]
+            # cleanedObjectNames = [name[0] for name in objectNames]
+            cleanedObjectNameList = []
+            for value in objectNames:
+                objectName = value[0]
+                cleanedObjectNameList.append(objectName)
             
             self.ui.objectNameComboBox.clear()
-            self.ui.objectNameComboBox.addItems(cleanedObjectNames)
+            self.ui.objectNameComboBox.addItems(cleanedObjectNameList)
             
-            print(f'Objects of type {selected_type}:', cleanedObjectNames)
+            print(f'Objects of type {selected_type}:', cleanedObjectNameList)
             
         except Exception as e:
             print(f'Error loading {selected_type} names:', e)

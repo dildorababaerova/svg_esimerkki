@@ -17,9 +17,10 @@ from PySide6.QtGui import (QAction, QBrush, QColor, QConicalGradient,
     QPainter, QPalette, QPixmap, QRadialGradient,
     QTransform)
 from PySide6.QtWidgets import (QApplication, QComboBox, QFrame, QGridLayout,
-    QHeaderView, QLabel, QLineEdit, QMainWindow,
-    QMenu, QMenuBar, QPushButton, QSizePolicy,
-    QStatusBar, QTableWidget, QTableWidgetItem, QWidget)
+    QGroupBox, QHeaderView, QLabel, QLineEdit,
+    QMainWindow, QMenu, QMenuBar, QPushButton,
+    QRadioButton, QSizePolicy, QStatusBar, QTableWidget,
+    QTableWidgetItem, QWidget)
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -125,6 +126,24 @@ class Ui_MainWindow(object):
         self.objectNameLabel = QLabel(self.centralwidget)
         self.objectNameLabel.setObjectName(u"objectNameLabel")
         self.objectNameLabel.setGeometry(QRect(160, 260, 101, 16))
+        self.groupBox = QGroupBox(self.centralwidget)
+        self.groupBox.setObjectName(u"groupBox")
+        self.groupBox.setGeometry(QRect(550, 30, 421, 201))
+        self.radioButton = QRadioButton(self.groupBox)
+        self.radioButton.setObjectName(u"radioButton")
+        self.radioButton.setGeometry(QRect(30, 30, 92, 20))
+        self.radioButton_2 = QRadioButton(self.groupBox)
+        self.radioButton_2.setObjectName(u"radioButton_2")
+        self.radioButton_2.setGeometry(QRect(30, 70, 92, 20))
+        self.radioButton_3 = QRadioButton(self.groupBox)
+        self.radioButton_3.setObjectName(u"radioButton_3")
+        self.radioButton_3.setGeometry(QRect(30, 110, 111, 20))
+        self.radioButton_4 = QRadioButton(self.groupBox)
+        self.radioButton_4.setObjectName(u"radioButton_4")
+        self.radioButton_4.setGeometry(QRect(30, 150, 61, 20))
+        self.lineEdit = QLineEdit(self.groupBox)
+        self.lineEdit.setObjectName(u"lineEdit")
+        self.lineEdit.setGeometry(QRect(100, 150, 113, 22))
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QMenuBar(MainWindow)
         self.menubar.setObjectName(u"menubar")
@@ -162,6 +181,11 @@ class Ui_MainWindow(object):
         self.getDataPushButton.setText(QCoreApplication.translate("MainWindow", u"Hae", None))
         self.previewLabel.setText(QCoreApplication.translate("MainWindow", u"Esikatselu", None))
         self.objectNameLabel.setText(QCoreApplication.translate("MainWindow", u"Objektin  nimi", None))
+        self.groupBox.setTitle(QCoreApplication.translate("MainWindow", u"GroupBox", None))
+        self.radioButton.setText(QCoreApplication.translate("MainWindow", u"pilkku(,)", None))
+        self.radioButton_2.setText(QCoreApplication.translate("MainWindow", u"puolipiste(;)", None))
+        self.radioButton_3.setText(QCoreApplication.translate("MainWindow", u"RadioButton(.)", None))
+        self.radioButton_4.setText(QCoreApplication.translate("MainWindow", u"Muu", None))
         self.menuOhje.setTitle(QCoreApplication.translate("MainWindow", u"Ohje", None))
     # retranslateUi
 
