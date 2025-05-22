@@ -107,6 +107,7 @@ class DbConnection():
 
             # Määritellään lopullinen SQL-lause
             sqlClause = f'SELECT * FROM {table}'
+            print(sqlClause)
             
             # Suoritetaan SQL-lause
             cursor.execute(sqlClause)

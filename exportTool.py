@@ -6,6 +6,8 @@
 # KIRJASTOJEN JA MODUULIEN LATAUKSET
 # ----------------------------------
 # import os # Polkumääritykset
+import os
+import csv
 import sys # Käynnistysargumentit
 
 from PySide6 import QtWidgets # Qt-vimpaimet
@@ -33,16 +35,34 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
 
 
-        self.serverName = ''
-        self.databaseName = ''
-        self.userName = ''   
-        self.password = ''
-        self.portNumber = ''
-        # self.serverName = 'localhost'
-        # self.databaseName = 'autolainaus'
-        # self.userName = 'postgres'   
-        # self.password = 'Q2werty'
-        # self.portNumber = '5432'
+        # self.serverName = ''
+        # self.databaseName = ''
+        # self.userName = ''   
+        # self.password = ''
+        # self.portNumber = ''
+        self.serverName = 'localhost'
+        self.databaseName = 'autolainaus'
+        self.userName = 'postgres'   
+        self.password = 'Q2werty'
+        self.portNumber = '5432'
+
+        # Tietokantaobjekti
+        self.dbobjectType = ''
+        self.dbObjectName = ''
+
+        # Tietokantaobjektin sarakkeiden nimet
+        self.columnNamesList = []
+        self.resultSet = []
+
+        # Virheilmoitustiedot
+        self.errorWindowTitle = ""
+        self.errorText = ""
+        self.errorDetails = ""
+
+
+        # Oletusasetukset
+
+        self.defaultFolder = f'{os.path.expanduser("~")}/Documents/'
 
 
 
@@ -51,10 +71,25 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # OHJELMOIDUT SIGNAALIT
         # ---------------------
 
-        # Kun Tulosta-painiketta on klikattu, kutsutaan updatePrintedLabel-metodia
-        # self.ui.tulostaPushButton.clicked.connect(self.updatePrintedLabel)
+       # Kun painetaan Testaa-painiketta, näytetään tilarivillä tulos ja
+        # päivtetään objektityypin valinnat. Jos virhe, näyteään msgbox
+        # Painike asettaa tietokantaparametrit ja yhteysmerkkijonon
 
         self.ui.testConnectionPushButton.clicked.connect(self.connectDb)
+        
+        # TODO: Kun poistutaan objektityypin valinnasta, haetaan tyypin objketilista
+        # ja päivitetään objektin nimi -valinnat ISSUE 13
+        self.ui.objectTypeComboBox.currentIndexChanged.connect(self.getObjectNames)
+
+
+        # TODO: Kun poistutaan / valinta on muuttunut objektilistasta 
+        # näyteään päivitetään esikatselu ja näytetään Tallenna-painike
+        self.ui.getDataPushButton.clicked.connect(self.updatePreview)
+
+        # TODO: Tallennuspainikkeen painaminen käynnistää tallennusdialogin ISSUE 9
+
+         # TODO: Tallennuspainikkeen painaminen käynnistää tallennusdialogin ISSUE 9
+        self.ui.exportPushButton.clicked.connect(self.saveToCSVFile)
 
 
 
@@ -64,11 +99,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def connectDb(self):
         # Haetaan syötteet käyttöliittymästä
-        self.serverName = self.ui.serverLineEdit.text()
-        self.databaseName = self.ui.databaseLineEdit.text()
-        self.userName = self.ui.userNameLineEdit.text()
-        self.password = self.ui.passwordLineEdit.text()
-        self.portNumber = self.ui.portLineEdit.text()
+        # self.serverName = self.ui.serverLineEdit.text()
+        # self.databaseName = self.ui.databaseLineEdit.text()
+        # self.userName = self.ui.userNameLineEdit.text()
+        # self.password = self.ui.passwordLineEdit.text()
+        # self.portNumber = self.ui.portLineEdit.text()
 
 
         self.settingsDictionary = {
@@ -106,11 +141,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.ui.objectTypeComboBox.addItems(cleanedObjectTypeList)
             
             # Connect object type selection change signal
-            self.ui.objectTypeComboBox.currentTextChanged.connect(
-                lambda: self.updateObjectNames(self.dbConnection))
+            # self.ui.objectTypeComboBox.currentTextChanged.connect(
+            #     lambda: self.updateObjectNames(self.dbConnection))
             
-            # Initial population of object names
-            self.updateObjectNames(self.dbConnection)
+            
             
             self.ui.statusbar.showMessage('Connection successful')
         
@@ -119,60 +153,238 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             print(e)
             self.ui.statusbar.showMessage('Connection failed: ' + str(e))
 
-    def updateObjectNames(self, dbConnection):
-        """Updates object names combobox based on selected object type"""
-        
-        selected_type = self.ui.objectTypeComboBox.currentText()
-        table = 'information_schema.tables'
-        columns = ['table_name']
-        table_type = self.ui.objectTypeComboBox.currentText()
-        # table_type = 'VIEW' if selected_type == 'VIEW' else 'BASE TABLE'
-        
-        try:
-            filterText = f"table_type = '{table_type}' AND table_schema NOT IN ('information_schema', 'pg_catalog')"
+    def getObjectNames(self):
 
-            objectNames = self.dbConnection.filterDistinctColumnsFromTable(table, columns, filterText)
-            # cleanedObjectNames = [name[0] for name in objectNames]
-            cleanedObjectNameList = []
+        # Muodostetaan asetussanakirja
+        settingsDictionary = {'server': self.serverName,
+                      'port': self.portNumber,
+                      'database': self.databaseName,
+                      'userName': self.userName,
+                      'password': self.password}
+        
+         # Luodaan tietokantayhteysolio
+        try:
+            dbConnection = dbOperations.DbConnection(settingsDictionary)
+            table = 'information_schema.tables'
+            columns = ['table_schema','table_name']
+            tableType = self.ui.objectTypeComboBox.currentText()
+
+            filterText  = f"table_type = '{tableType}' AND table_schema NOT IN ('information_schema', 'pg_catalog')"
+
+            objectNames = dbConnection.filterDistinctColumnsFromTable(table,columns,filterText)
+            self.ui.statusbar.showMessage('Haettiin tietokantaobjektien nimet')
+            
+            print(objectNames)
+
+            # Tehdään monikkolistasta merkkijonolista
+            self.ui.objectNameComboBox.clear() # Tyhjentää vanhat vaihtoehdot
+
+
+            cleanedObjectNameList = ['Valitse']
+            
+            # Optimal versio!
+            # cleanedObjectTypes = [obj[0] for obj in objectTypes]
             for value in objectNames:
-                objectSchema = value[0]
-                objectName = value[1]
-                objectFullName = f"{objectSchema}.{objectName}"
+                objectSchema = value[0] # Ottaa monikon ensimmäisen arvon -> skeema
+                objectName = value[1] # Ottaa monikon toisen arvon -> objektin nimi
+                objectFullName = f'{objectSchema}.{objectName}' # Objektin polku: skeema.nimi
                 cleanedObjectNameList.append(objectFullName)
             
-            self.ui.objectNameComboBox.clear()
+            # Lisätään lista yhdistelmäruutuun
             self.ui.objectNameComboBox.addItems(cleanedObjectNameList)
-            
-            print(f'Objects of type {selected_type}:', cleanedObjectNameList)
-            
+        
+        
         except Exception as e:
-            print(f'Error loading {selected_type} names:', e)
-            self.ui.statusbar.showMessage(f'Error loading {selected_type} names')
+            self.errorWindowTitle = 'Yhteys tietokantaobjektien haku ei onnistunut'
+            self.errorText = 'Objektien nimien haku ei onnistunut'
+            self.errorDetails = str(e)
+            self.openWarning()
+            print('Virhe objektin nimien haussa')
+            print(e)
 
+    def updatePreview(self):
 
-    def updateObjectViews(self, dbConnection):
-        """Updates object type based on selected object name"""
+        # Muodostetaan asetussanakirja
+        settingsDictionary = {'server': self.serverName,
+                      'port': self.portNumber,
+                      'database': self.databaseName,
+                      'userName': self.userName,
+                      'password': self.password}
         
-        selected_name = self.ui.objectNameComboBox.currentText()
-        
-        
+        # Luetaan valitun tietokantaobjektin skeema ja nimi
+        currentObjectSelection = self.ui.objectNameComboBox.currentText()
+        print('Valittu tietokantaobjekti:', currentObjectSelection)
+        # Luodaan tietokantayhteysolio
+
+        if currentObjectSelection == 'Valitse' or currentObjectSelection == '':
+            self.ui.statusbar.showMessage('Valitse ensin tietokantaobjekti')
+            self.ui.previewTableWidget.clear()
+            self.ui.previewTableWidget.setRowCount(0)
+            self.ui.previewTableWidget.setColumnCount(0)
+            self.ui.previewTableWidget.setHorizontalHeaderLabels([])
+            self.ui.statusbar.showMessage('Tietoa puuttuu tietokantaobjektissa')
+            return
         try:
-            objectType = self.dbConnection.readAllColumnsFromTable(
-                'information_schema.tables', 
-                ['table_type'], 
-                f"table_name = '{selected_name.split('.')[1]}' AND table_schema = '{selected_name.split('.')[0]}'"
-            )
-                        
+            dbConnection2 = dbOperations.DbConnection(settingsDictionary)
+            self.resultSet = dbConnection2.readAllColumnsFromTable(currentObjectSelection)
+            self.ui.statusbar.showMessage('Haettiin tietokantaobjektin ' + currentObjectSelection + ' tiedot')
+            print('TULOSJOUKKO', self.resultSet)
+    
+        except:
+            pass
+        
+
+        # Tyhjennetään vanhat tiedot käyttöliittymästä ennen uusien lukemista tietokannasta
+        self.ui.previewTableWidget.clear()
+
+        # Määritellään taulukkoelementin otsikot
+        try:
+            # Tulosjoukon rivimäärä
+            numberOfRows = len(self.resultSet)
+            self.ui.previewTableWidget.setRowCount(numberOfRows)
+
+            # Tulosjoukon sarakemäärä
+            columnCount = len(self.resultSet[0])
+            self.ui.previewTableWidget.setColumnCount(columnCount)
+            dbConnection = dbOperations.DbConnection(settingsDictionary)
+            self.headerRow = dbConnection.getColumnNames(currentObjectSelection)
+            self.ui.previewTableWidget.setHorizontalHeaderLabels(self.headerRow)
+
+            # Asetetaan taulukon solujen arvot
+            for row in range(numberOfRows): # Luetaan listaa riveittäin
+                for column in range(len(self.resultSet[row])): # Luetaan monikkoa sarakkeittain
+                    
+                    # Muutetaan merkkijonoksi ja QTableWidgetItem-olioksi
+                    data = QtWidgets.QTableWidgetItem(str(self.resultSet[row][column])) 
+                    self.ui.previewTableWidget.setItem(row, column, data)
+                    self.ui.previewTableWidget.setHorizontalHeaderLabels(self.headerRow)
+        
         except Exception as e:
-            print(f'Error loading object type for {selected_name}:', e)
-            self.ui.statusbar.showMessage(f'Error loading object type for {selected_name}')
+            pass   
+
+        
+            
+    def createCSVFile(self, separator=',', textDelimiter= "'"):
+        # Luodaan tiedosto ja kirjoitetaan siihen CSV-muotoista dataa
+        # csvFileName = 'test.csv'
+        print(f"CREATECSV {self.headerRow} + {separator} + {textDelimiter}")
+        
+        
+        
+    
+    def saveToCSVFile(self):
+        # Luodaan tiedosto ja kirjoitetaan siihen CSV-muotoista dataa
+        # csvFileName = 'test.csv'
+
+        
+
+        defaultFileName = f"{self.defaultFolder}{self.ui.objectNameComboBox.currentText()}"
+        csvFileNameAndType = QtWidgets.QFileDialog.getSaveFileName(self, "Save File",
+                        defaultFileName,
+                        ("CSV files (*.csv);;TSV files (*.tsv);;Text files (*.txt)"),
+                        # ("Erotellut tiedostot (*.csv *.tsv *.txt)")
+                         )
+        print(csvFileNameAndType)
 
 
-    # Muutetaan tulostettuLabel:n sisältö: teksti ja väri
-    def updatePrintedLabel(self):
-        pass
-        #self.ui.tulostettuLabel.setText('Tulostettu')
-        # self.ui.tulostettuLabel.setStyleSheet(u"color: rgb(0, 255, 0);")
+
+        csvFileName = csvFileNameAndType[0]
+
+        selected_filter = csvFileNameAndType[1]
+
+        print('Selected filter:', selected_filter)
+        if not csvFileName:
+            self.ui.statusbar.showMessage('Tallennus peruutettu')
+            return
+        
+        # data = f"'Erkki','Kalle','Matti'"
+
+        # with open(csvFileName, 'wt', ) as fileToWrite:
+        #     fileToWrite = csv.writer(data)
+        #     fileToWrite.writerow(data)
+        #     print('Tiedosto kirjoitettu onnistuneesti')
+
+
+
+        with open(csvFileName, 'w', newline='', encoding='utf-8') as file:
+            writer = csv.writer(file, delimiter=',')
+            
+            # Kirjoitetaan otsikkorivi (header)
+            if hasattr(self, 'headerRow'):
+                writer.writerow(self.headerRow)
+            
+            # Kirjoitetaan data
+            if hasattr(self, 'resultSet') and self.resultSet:
+                for row in self.resultSet:
+                    writer.writerow(row)
+                
+                self.ui.statusbar.showMessage(f'Tiedosto tallennettu: {csvFileName}')
+                self.defaultFolder = os.path.dirname(csvFileName)
+
+
+
+
+
+
+        # if csvFileName[0] != '':
+        #     # Tiedoston tallennus onnistui
+        #     self.ui.statusbar.showMessage('Tallennus onnistui')
+        #     print('Tallennus onnistui')
+        # else:
+        #     # Tiedoston tallennus epäonnistui
+        #     self.ui.statusbar.showMessage('Tallennus epäonnistui')
+        #     print('Tallennus epäonnistui')
+
+        #     file_path = csvFileName[0]
+        #     selected_filter = csvFileName[1]
+        #     print('Selected filter:', selected_filter)
+            
+        #     if not file_path:
+        #         self.ui.statusbar.showMessage('Tallennus peruutettu')
+        #         return
+
+        #     try:
+        #         # Määritellään erotin tiedostotyypin mukaan
+        #         if 'CSV' in selected_filter:
+        #             delimiter = ','
+        #             file_extension = '.csv'
+        #         elif 'TSV' in selected_filter:
+        #             delimiter = '\t'
+        #             file_extension = '.tsv'
+        #         else:
+        #             delimiter = ','
+        #             file_extension = '.txt'
+
+        #         # Varmistetaan tiedostopääte
+        #         if not file_path(file_extension):
+        #             file_path += file_extension
+
+        #         # Kirjoitetaan data tiedostoon
+        #         with open(file_path, 'w', newline='', encoding='utf-8') as file:
+        #             writer = csv.writer(file, delimiter=delimiter)
+                    
+        #             # Kirjoitetaan otsikkorivi (header)
+        #             if hasattr(self, 'header_row'):
+        #                 writer.writerow(self.header_row)
+                    
+        #             # Kirjoitetaan data
+        #             if hasattr(self, 'resultSet') and self.resultSet:
+        #                 for row in self.resultSet:
+        #                     writer.writerow(row)
+                        
+        #                 self.ui.statusbar.showMessage(f'Tiedosto tallennettu: {file_path}')
+        #                 self.defaultFolder = os.path.dirname(file_path)  # Päivitetään oletuskansio
+        #             else:
+        #                 self.ui.statusbar.showMessage('Ei tallennettavaa dataa')
+
+        #     except Exception as e:
+        #         self.ui.statusbar.showMessage(f'Tallennus epäonnistui: {str(e)}')
+        #         print(f'Virhe tallennuksessa: {e}')
+
+            
+            
+           
+            
 
     # Avataan MessageBox
     def openWarning(self):
