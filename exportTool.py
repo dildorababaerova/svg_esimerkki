@@ -75,7 +75,69 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         # TODO: Tallennuspainikkeen painaminen käynnistää tallennusdialogin ISSUE 9
         self.ui.exportPushButton.clicked.connect(self.saveToCSVFile)
+
+        # RadionButtonit signaalit
+        self.ui.commaRadioButton.clicked.connect(self.setSeparator)
+        self.ui.semicolonRadioButton.clicked.connect(self.setSeparator)
+        self.ui.tabRadioButton.clicked.connect(self.setSeparator)
+        self.ui.otherSeparatorRadioButton.clicked.connect(self.setSeparator)
+        self.ui.otherSeparatorLineEdit.textChanged.connect(self.forceOtherSeparator)
+
+        # Tekstin tunnistimen valinnan signalit
+
+        self.ui.doubleQuotationRadioButton.clicked.connect(self.setQualifier)
+        self.ui.semiQuoteRadioButton.clicked.connect(self.setQualifier)
+        self.ui.withoutRadioButton.clicked.connect(self.setQualifier)
+        self.ui.otherQualiferRadioButton.clicked.connect(self.setQualifier)
+        self.ui.otherQualiferLineEdit.textChanged.connect(self.forceOtherQualifier)
+
+    def setQualifier(self):
+        # Kun käyttäjä valitsee erottimen, pakotetaan
         
+        if self.ui.doubleQuotationRadioButton.isChecked():
+            self.textIdentifier = '"'
+        elif self.ui.semiQuoteRadioButton.isChecked():
+            self.textIdentifier = "'"
+        elif self.ui.withoutRadioButton.isChecked():
+            self.textIdentifier = ''
+        elif self.ui.otherQualiferRadioButton.isChecked():
+            self.textIdentifier = self.ui.otherQualiferLineEdit.text().strip()
+        else:
+            self.textIdentifier = '"'
+
+
+        statusbarMessage = f'Tekstin tunnistin: {self.textIdentifier}'
+        self.ui.statusbar.showMessage(statusbarMessage, 5000) # Näytetään viesti 5 sekuntia
+
+    def forceOtherQualifier(self):
+        # Kun käyttäjä syöttää erottimen, pakotetaan
+        self.ui.otherQualiferRadioButton.setChecked(True)
+        
+
+
+
+
+    def forceOtherSeparator(self):
+        # Kun käyttäjä syöttää erottimen, pakotetaan
+        
+        self.ui.otherSeparatorLineEdit.setEnabled(True)
+    
+    def setSeparator(self):
+        # Kun käyttäjä valitsee erottimen, pakotetaan
+        
+        if self.ui.commaRadioButton.isChecked():
+            self.separator = ','
+        elif self.ui.semicolonRadioButton.isChecked():
+            self.separator = ';'
+        elif self.ui.tabRadioButton.isChecked():
+            self.separator = '\t'
+        elif self.ui.otherSeparatorRadioButton.isChecked():
+            self.separator = self.ui.otherSeparatorLineEdit.text().strip()
+        else:
+            self.separator = ';'  
+
+        statusbarMessage = f'Erottelija: {self.separator}'
+        self.ui.statusbar.showMessage(statusbarMessage, 5000) # Näytetään viesti 5 sekuntia  
    
    
     # OHJELMOIDUT SLOTIT
@@ -244,7 +306,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         dataRows = ''
         dataRow= ''
         for row in self.resultSet:
+            print('Rivi:', row)
+
             for columnValue in row:
+                typeOfColumn = type(str(columnValue))
+                print('Tyyppi:', typeOfColumn)
                 dataRow += str(columnValue) + separator
             
         # Poistetaan viimeinen erottelija
