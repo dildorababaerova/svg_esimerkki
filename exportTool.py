@@ -54,6 +54,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # Oletustallennushakemisto
         self.defaultFolder = f'{os.path.expanduser('~')}\\Documents\\'
 
+        # CSV-asetusten oletusarvot
+        self.chosenSeparator = ';'
+        self.chosenQualifier = ''
+        self.ui.semicolonRadioButton.setChecked(True)
+        self.ui.withoutRadioButton.setChecked(True)
+
         # OHJELMOIDUT SIGNAALIT
         # ---------------------
 
@@ -65,6 +71,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         
         # Kun poistutaan objektityypin valinnasta, haetaan tyypin objketilista
         # ja päivitetään objektin nimi -valinnat 
+        self.ui.databaseComboBox.currentIndexChanged.connect(self.getObjectTypeNames)
         self.ui.objectTypeComboBox.currentIndexChanged.connect(self.getObjectNames)
 
 
@@ -95,18 +102,18 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # Kun käyttäjä valitsee erottimen, pakotetaan
         
         if self.ui.doubleQuotationRadioButton.isChecked():
-            self.textIdentifier = '"'
+            self.chosenQualifier = '"'
         elif self.ui.semiQuoteRadioButton.isChecked():
-            self.textIdentifier = "'"
+            self.chosenQualifier = "'"
         elif self.ui.withoutRadioButton.isChecked():
-            self.textIdentifier = ''
+            self.chosenQualifier = ''
         elif self.ui.otherQualiferRadioButton.isChecked():
-            self.textIdentifier = self.ui.otherQualiferLineEdit.text().strip()
+            self.chosenQualifier = self.ui.otherQualiferLineEdit.text().strip()
         else:
-            self.textIdentifier = '"'
+            self.chosenQualifier = '"'
 
 
-        statusbarMessage = f'Tekstin tunnistin: {self.textIdentifier}'
+        statusbarMessage = f'Tekstin tunnistin: {self.chosenQualifier}'
         self.ui.statusbar.showMessage(statusbarMessage, 5000) # Näytetään viesti 5 sekuntia
 
     def forceOtherQualifier(self):
@@ -119,24 +126,23 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def forceOtherSeparator(self):
         # Kun käyttäjä syöttää erottimen, pakotetaan
-        
-        self.ui.otherSeparatorLineEdit.setEnabled(True)
+        self.ui.otherSeparatorRadioButton.setChecked(True)
     
     def setSeparator(self):
         # Kun käyttäjä valitsee erottimen, pakotetaan
         
         if self.ui.commaRadioButton.isChecked():
-            self.separator = ','
+            self.chosenSeparator = ','
         elif self.ui.semicolonRadioButton.isChecked():
-            self.separator = ';'
+            self.chosenSeparator = ';'
         elif self.ui.tabRadioButton.isChecked():
-            self.separator = '\t'
+            self.chosenSeparator = '\t'
         elif self.ui.otherSeparatorRadioButton.isChecked():
-            self.separator = self.ui.otherSeparatorLineEdit.text().strip()
+            self.chosenSeparator = self.ui.otherSeparatorLineEdit.text().strip()
         else:
-            self.separator = ';'  
+            self.chosenSeparator = ';'  
 
-        statusbarMessage = f'Erottelija: {self.separator}'
+        statusbarMessage = f'Erottelija: {self.chosenSeparator}'
         self.ui.statusbar.showMessage(statusbarMessage, 5000) # Näytetään viesti 5 sekuntia  
    
    
@@ -168,6 +174,50 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # Luodaan tietokantayhteysolio
         try:
             dbConnection = dbOperations.DbConnection(settingsDictionary)
+            
+            table = 'pg_catalog.pg_database'
+            columns = ['datname']
+            filterText = f"datistemplate = false"
+            
+            databaseNames = dbConnection.filterDistinctColumsFromTable(table,columns,filterText)
+            self.ui.statusbar.showMessage('Haettiin tietokantojen nimet')
+
+            # Tehdään monikkolistasta merkkijonolista
+            self.ui.databaseComboBox.clear() # Tyhjentää vanhat vaihtoehdot
+            cleanedDatabaseNameList = ['Valitse']
+            for value in databaseNames:
+                databaseName = value[0] # Ottaa monikon ensimmäisen arvon
+                cleanedDatabaseNameList.append(databaseName)
+                print('DATABASE', databaseName)
+            # Lisätään lista yhdistelmäruutuun
+            self.ui.databaseComboBox.addItems(cleanedDatabaseNameList)
+
+        
+        except Exception as e:
+            self.errorWindowTitle = 'Yhteys tietokantaan ei onnistunut'
+            self.errorText = 'Yhteyden muodostuksessa tapahtui virhe'
+            self.errorDetails = str(e)
+            self.openWarning()
+        
+
+    # TODO: Tee slotti, joka hakee information_schema-nimiavaruudesta listan
+    # tietokantaobjekteista, jotka eivät ole information_schemassa tai pg_catalogissa
+    #  a) tee  kysely ensin SQL-kielellä PGAdminissa ja kokeile
+    #  b) käytä filterColumnsFromTable metodia tietojen hakemiseen ja tallenna ne
+    #     pääohjelmaan muuttujaan self.tablesAndViews
+    
+    def getObjectTypeNames(self):
+
+        # Muodostetaan asetussanakirja
+        settingsDictionary = {'server': self.serverName,
+                      'port': self.portNumber,
+                      'database': self.databaseName,
+                      'userName': self.userName,
+                      'password': self.password}
+        
+         # Luodaan tietokantayhteysolio
+        try:
+            dbConnection = dbOperations.DbConnection(settingsDictionary)
             table = 'information_schema.tables'
             columns = ['table_type']
             filterText = f"table_schema NOT IN ('information_schema', 'pg_catalog')"
@@ -191,13 +241,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.errorText = 'Yhteyden muodostuksessa tapahtui virhe'
             self.errorDetails = str(e)
             self.openWarning()
-        
-
-    # TODO: Tee slotti, joka hakee information_schema-nimiavaruudesta listan
-    # tietokantaobjekteista, jotka eivät ole information_schemassa tai pg_catalogissa
-    #  a) tee  kysely ensin SQL-kielellä PGAdminissa ja kokeile
-    #  b) käytä filterColumnsFromTable metodia tietojen hakemiseen ja tallenna ne
-    #     pääohjelmaan muuttujaan self.tablesAndViews
+    
+    
+    
+    
+    
     def getObjectNames(self):
 
         # Muodostetaan asetussanakirja
@@ -265,6 +313,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             
             # Get column names from database metadata
             headerRow = dbConnection.getColumnNames(currentObjectSelection)
+            self.columnNamesList = headerRow 
             columnCount = len(headerRow)
             
             # Set column headers
@@ -284,59 +333,52 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                         self.ui.previewTableWidget.setItem(row_idx, col_idx, item)
 
         except Exception as e:
-            self.ui.statusbar.showMessage(f"Error: {str(e)}")
+            self.ui.statusbar.showMessage(f"Virhe: {str(e)}")
             self.ui.previewTableWidget.clear()
             self.ui.previewTableWidget.setRowCount(0)
             self.ui.previewTableWidget.setColumnCount(0)
         
 
-    def createCSVdata(self, separator=';', textIdentifier='"'):
-        headerRow = ''
-        for item in self.columnNamesList:
-            headerRow = headerRow + item + separator
-
-        # Poistetaan viimeinen erottelija
-        headerRow = headerRow[:-1] # Poistetaan viimeisen sarakkeen jälkeen tuleva erotusmerkki
-        # Lisätään rivinvaihto
-        headerRow = headerRow + '\\n'
-        print('Otsikot:', headerRow)
-        # print('Data', dataRows)
-
-        dataRows = self.resultSet
-        dataRows = ''
-        dataRow= ''
-        for row in self.resultSet:
-            print('Rivi:', row)
-
-            for columnValue in row:
-                typeOfColumn = type(str(columnValue))
-                print('Tyyppi:', typeOfColumn)
-                dataRow += str(columnValue) + separator
-            
-        # Poistetaan viimeinen erottelija
-        dataRow= dataRow[:-1] # Poistetaan viimeisen sarakkeen jälkeen tuleva erotusmerkki
-        # Lisätään rivinvaihto
-        dataRows += dataRow + '\\n'
-        print('Tiedot:', dataRows)
+    def createCSVdata(self, chosenSeparator=';', chosenQualifier='"'):
+        data = ''
+        # Luodaan otsikkorivi
+        headerRow = self.chosenSeparator.join(
+            [f'{self.chosenQualifier}{col}{self.chosenQualifier}' for col in self.columnNamesList]
+        ) + '\n'  # Oikea rivinvaihto
         
+        data_rows = ''
+        for row in self.resultSet:
+            row_data = []
+            for value in row:
+                # Lisätään tunniste vain merkkijonoille
+                if isinstance(value, str):
+                    cell = f'{self.chosenQualifier}{value}{self.chosenQualifier}'
+                else:
+                    cell = str(value)
+                row_data.append(cell)
+            data_rows += self.chosenSeparator.join(row_data) + '\n'
+        data=headerRow + data_rows
+        print(data)
+        return data
+            
 
 
     # Tallennus CSV-tiedostoksi
     def saveToCSVFile(self):
-        
         # Avataan tallennusdialogi oletuskanisona on käyttäjän tiedostot-kansio
         defaultFileName = f'{self.defaultFolder}{self.ui.objectNameComboBox.currentText()}'
         csvFileNameAndType = QtWidgets.QFileDialog.getSaveFileName(self, "Tallenna tiedosto",
-                           defaultFileName,
-                           ("CSV files (*.csv);;TSV files (*.tsv);;Text files (*.txt)"))
- 
+                            defaultFileName,
+                            ("CSV files (*.csv);;TSV files (*.tsv);;Text files (*.txt)"))
+
         # Otetaan monikosta polku ja tiedoston nimi
         csvFileName = csvFileNameAndType[0]
 
-        data = f"'Erkki'; 'Esimerkki'; 55 \\n"
+        
 
         # Avataan tiedosto kirjoittamista varten
-        self.createCSVdata(';', '"')
+
+        data = self.createCSVdata(self.chosenSeparator, self.chosenQualifier)
         with open(csvFileName, 'wt') as fileToWrite:
             fileToWrite.write(data)
 
