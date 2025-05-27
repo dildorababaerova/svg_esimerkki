@@ -72,6 +72,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         # Kun poistutaan objektityypin valinnasta, haetaan tyypin objketilista
         # ja päivitetään objektin nimi -valinnat 
         self.ui.databaseComboBox.currentIndexChanged.connect(self.getObjectTypeNames)
+        
         self.ui.objectTypeComboBox.currentIndexChanged.connect(self.getObjectNames)
 
 
@@ -151,18 +152,18 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def connectDb(self):
 
         # Päivitetään tietokantaan liittyvät ominaisuudet syötettyjen tietojen perusteella
-        # self.serverName = self.ui.serverLineEdit.text()
-        # self.portNumber = self.ui.portLineEdit.text()
-        # self.databaseName = self.ui.databaseLineEdit.text()
-        # self.userName = self.ui.userNameLineEdit.text()
-        # self.password = self.ui.passwordLineEdit.text()
+        self.serverName = self.ui.serverLineEdit.text()
+        self.portNumber = self.ui.portLineEdit.text()
+        self.databaseName = self.ui.databaseLineEdit.text()
+        self.userName = self.ui.userNameLineEdit.text()
+        self.password = self.ui.passwordLineEdit.text()
 
 
-        self.serverName = '127.0.0.1'
-        self.portNumber = 5432
-        self.databaseName = 'testaus'
-        self.userName = 'postgres'
-        self.password = 'Q2werty'
+        # self.serverName = '127.0.0.1'
+        # self.portNumber = 5432
+        # self.databaseName = 'testaus'
+        # self.userName = 'postgres'
+        # self.password = 'Q2werty'
 
         # Muodostetaan asetussanakirja
         settingsDictionary = {'server': self.serverName,
@@ -207,14 +208,22 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     #     pääohjelmaan muuttujaan self.tablesAndViews
     
     def getObjectTypeNames(self):
-
-        # Muodostetaan asetussanakirja
-        settingsDictionary = {'server': self.serverName,
-                      'port': self.portNumber,
-                      'database': self.databaseName,
-                      'userName': self.userName,
-                      'password': self.password}
+        # Haetaan valittu tietokanta comboboxista
+        selected_database = self.ui.databaseComboBox.currentText()
         
+        # Jos valintaa ei ole tehty, ei tehdä mitään
+        if selected_database == 'Valitse':
+            return
+
+        # Muodostetaan asetussanakirja VALITULLE tietokannalle
+        settingsDictionary = {
+            'server': self.serverName,
+            'port': self.portNumber,
+            'database': selected_database,  # Käytetään valittua tietokantaa
+            'userName': self.userName,
+            'password': self.password
+        }
+
          # Luodaan tietokantayhteysolio
         try:
             dbConnection = dbOperations.DbConnection(settingsDictionary)
@@ -247,11 +256,16 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     
     
     def getObjectNames(self):
+        selected_database = self.ui.databaseComboBox.currentText()
+        
+        # Jos valintaa ei ole tehty, ei tehdä mitään
+        if selected_database == 'Valitse':
+            return
 
         # Muodostetaan asetussanakirja
         settingsDictionary = {'server': self.serverName,
                       'port': self.portNumber,
-                      'database': self.databaseName,
+                      'database': selected_database,
                       'userName': self.userName,
                       'password': self.password}
         
@@ -290,10 +304,15 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             
 
     def updatePreview(self):
+        selected_database = self.ui.databaseComboBox.currentText()
+        
+        # Jos valintaa ei ole tehty, ei tehdä mitään
+        if selected_database == 'Valitse':
+            return
         settingsDictionary = {
             'server': self.serverName,
             'port': self.portNumber,
-            'database': self.databaseName,
+            'database': selected_database,
             'userName': self.userName,
             'password': self.password
         }
